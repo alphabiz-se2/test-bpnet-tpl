@@ -1,0 +1,11 @@
+en:
+  title: BP.NET Website
+  contentDir: content/en
+
+zh:
+  title: BP.NET 中文官网
+  contentDir: content/zh-hans
+
+zh-Hant:
+  title: BP.NET 中文官網
+  contentDir: content/zh-hant

@@ -1,0 +1,544 @@
+locale: 'zh_Hans'
+
+backend:
+  name: git-gateway
+  branch: main
+  squash_merges: true
+media_folder: '/assets/media'
+public_folder: '/media'
+
+i18n:
+  structure: multiple_folders
+  locales: [en, zh-hans, zh-hant]
+  default_locale: en
+
+common:
+  ###################################################################
+  ##                        basic fields                           ##
+  ###################################################################
+  ##    belong:       string                                       ##
+  ##    slug:         string                                       ##
+  ###################################################################
+  base:
+    config: &base-config
+      folder: content
+      slug: '{{fields.slug}}'
+      #media_folder: '/assets/media/{{dirname}}'
+      #public_folder: '/media/{{dirname}}'
+      media_folder: '/assets/media'
+      public_folder: '/media'
+      i18n: true
+
+    belong: &base-belong
+      label: 归属页面
+      name: belong
+      i18n: false
+      widget: select
+      options:
+        - { label: 主页, value: home }
+        - { label: 博客, value: blog }
+        - { label: 产品, value: product }
+        - { label: 服务, value: service }
+        - { label: 资讯, value: press }
+      required: true
+      hint: 当前组件或文章所归属的页面
+
+    slug: &base-slug
+      label: ID
+      name: slug
+      i18n: duplicate
+      widget: string
+      required: true
+      pattern: ["^[a-z0-9]+(?:-[a-z0-9]+)*$", "不可包含空格、大写字母和特殊符号，可以用减号（-）分隔单词，并且允许使用数字。"]
+      hint: 该字段将作为链接和md文件的名称
+
+  ###################################################################
+  ##                         post fields                           ##
+  ###################################################################
+  ##    title:            string                                   ##
+  ##    subtitle:         string                                   ##
+  ##    body:             markdown                                 ##
+  ##    date:             datetime                                 ##
+  ##    summary:          markdown                                 ##
+  ##    draft:            boolean                                  ##
+  ##    authors:          list                                     ##
+  ##    tags:             list                                     ##
+  ##    categories:       list                                     ##
+  ##    image.filename:   image                                    ##
+  ##---------------------------------------------------------------##
+  ##    lastMod:          datetime                                 ##
+  ##    math:             boolean                                  ##
+  ##    diagram:          boolean                                  ##
+  ##    highlight:        boolean                                  ##
+  ##    image.placement:  number                                   ##
+  ###################################################################
+  post:
+    title: &post-title
+      label: 文章标题
+      name: title
+      widget: string
+      i18n: true
+      required: true
+
+    subtitle: &post-subtitle
+      label: 文章副标题
+      name: subtitle
+      widget: string
+      i18n: true
+      default: ''
+      required: false
+
+    body: &post-body
+      label: 文章内容
+      name: body
+      i18n: true
+      required: false
+      widget: markdown
+
+    date: &post-date
+      label: 发布时间
+      name: date
+      widget: datetime
+      i18n: duplicate
+      required: true
+
+    summary: &post-summary
+      label: 文章概述
+      name: summary
+      widget: markdown
+      i18n: true
+      required: false
+      hint: 该文本将作为一段简短的描述文本呈现在文章列表项中
+
+    draft: &post-draft
+      label: 作为草稿
+      name: draft
+      widget: boolean
+      i18n: duplicate
+      default: false
+      required: false
+      hint: 作为草稿的文章将不在网页上显示，仅保存在仓库中
+
+    authors: &post-authors
+      label: 作者
+      name: authors
+      widget: list
+      i18n: true
+      required: false
+      hint: 该选项可用于归档，若有多个作者可用英文逗号分隔，形如："张三,李四"
+
+    tags: &post-tags
+      label: 标签
+      name: tags
+      widget: list
+      i18n: true
+      required: false
+      hint: 该选项可用于归档，若有多个标签可用英文逗号分隔，形如："使用教程,入门"
+
+    categories: &post-categories
+      label: 分类
+      name: categories
+      widget: list
+      i18n: true
+      required: false
+      hint: 该选项可用于归档，若同属多个分类可用英文逗号分隔，形如："资讯,公告"
+
+    image: &post-image
+      label: 文章封面
+      name: image
+      required: false
+      widget: object
+      i18n: true
+      fields:
+        - label: 上传一张图片作为封面
+          name: filename
+          widget: image
+          i18n: duplicate
+          default: ''
+          required: false
+          media_folder: '/assets/media/post'
+          public_folder: '/media/post'
+          media_library:
+            config:
+              multiple: false
+          hint: 图片将保存在"assets/media/post/<image>"
+
+    config1: &post-config
+      <<: *base-config
+      summary: '{{fields.slug}}'
+      media_folder: '/assets/media/post'
+      public_folder: '/media/post'
+      create: true
+      delete: true
+
+    config2: &spec-config
+      <<: *base-config
+      create: false
+      delete: false
+
+  ###################################################################
+  ##                      configs | menus                          ##
+  ###################################################################
+  menus: &config-menus
+    label: 菜单
+    name: menus
+    file: 'config/_default/menus.yaml'
+    fields:
+      - label: 菜单列表项
+        name: main
+        widget: list
+        fields:
+          - {label: 显示名称, name: name, widget: string, default: 'Menu Item', require: true, hint: "可填入“menu_item_xx”，在“i18n/xx.yaml”中配置国际化"}
+          - {label: 跳转链接, name: url, widget: string, default: '/', require: true}
+          - {label: 权重, name: weight, widget: number, default: 10, require: true, hint: "数字越小优先级越高", value_type: int, min: 10, max: 1000}
+
+  ###################################################################
+  ##                      configs | languages                      ##
+  ###################################################################
+  languages:
+    base-lang: &config-languages-base-lang
+      widget: object
+      fields:
+        - {label: 网站标题, name: title, widget: string, require: true, hint: '该文本将作为当前语言下的网站标题'}
+        - {name: contentDir, widget: hidden}
+
+    main: &config-languages
+      label: 语言
+      name: languages
+      file: 'config/_default/languages.yaml'
+      fields:
+        - <<: *config-languages-base-lang
+          label: 英文
+          name: en
+        - <<: *config-languages-base-lang
+          label: 简体中文
+          name: zh
+        - <<: *config-languages-base-lang
+          label: 繁体中文
+          name: zh-Hant
+
+  ###################################################################
+  ##                      configs | params                         ##
+  ###################################################################
+  params:
+    xx: &config-params-xx-fields
+      fields:
+        - label: 本地化
+          name: locale
+          widget: object
+          fields:
+            - {label: 日期格式, name: date_format, widget: string, require: true, hint: "填入一个特定格式的任意日期的文本，网站将以此格式显示日期"}
+            - {label: 时间格式, name: time_format, widget: string, require: true, hint: "填入一个特定格式的任意时间的文本，网站将以此格式显示时间"}
+        - label: 页脚
+          name: footer
+          widget: object
+          fields:
+            - label: 版权
+              name: copyright
+              widget: object
+              fields:
+                - { label: 申明, name: notice, widget: string, require: true, hint: '可使用 “{year}” 表示当前年份' }
+            - label: 社交链接
+              name: social
+              hint: "页脚底部的相关社交链接"
+              widget: list
+              fields:
+                - { label: 类别, name: type, widget: select, default: "github", require: true, options: [email, github, twitter, facebook, linkedin], hint: "社交链接所属平台"}
+                - { label: 链接, name: url, widget: string, default: "/", require: true }
+    en: &config-params-en
+      <<: *config-params-xx-fields
+      label: 配置参数（en）
+      name: params-en
+      file: 'config/_default/params.en.yaml'
+    zh: &config-params-zh
+      <<: *config-params-xx-fields
+      label: 配置参数（zh）
+      name: params-zh
+      file: 'config/_default/params.zh.yaml'
+    zh-hant: &config-params-zh-hant
+      <<: *config-params-xx-fields
+      label: 配置参数（zh-hant）
+      name: params-zh-hant
+      file: 'config/_default/params.zh-Hant.yaml'
+
+  ###################################################################
+  ##                      configs | theme                          ##
+  ###################################################################
+  theme:
+    theme-color: &config-theme-color-fields
+      fields:
+        - {label: 主题颜色, name: primary, widget: color, require: true, allowInput: true}
+        - {label: 背景颜色, name: background, widget: color, require: true, allowInput: true}
+        - {label: 菜单 | 背景颜色, name: menu_primary, widget: color, require: true, allowInput: true, enableAlpha: true}
+        - {label: 菜单 | 标题文本颜色, name: menu_title, widget: color, require: true, hint: '菜单中标题文本的颜色；若在“assets/media/logo.png”配置了logo图片，则菜单标题文本被图片替代，此项无效', allowInput: true}
+        - {label: 菜单 | 常规文本颜色, name: menu_text, widget: color, require: true, hint: '菜单项目未激活的文本颜色', allowInput: true}
+        - {label: 菜单 | 激活文本颜色, name: menu_text_active, widget: color, require: true, hint: '菜单项目激活时的文本颜色；比如在“关于”页面则菜单的“关于”按钮文本显示为该颜色', allowInput: true}
+        - {label: 主页 | 奇数背景颜色, name: home_section_odd, widget: color, default: transparent, hint: '主页中第奇数个Section的背景颜色；默认为透明', allowInput: true, enableAlpha: true}
+        - {label: 主页 | 偶数背景颜色, name: home_section_even, widget: color, default: transparent, hint: '主页中第偶数个Section的背景颜色；默认为透明', allowInput: true, enableAlpha: true}
+
+    main: &config-theme
+      label: 主题
+      name: theme
+      file: 'data/themes/current_theme.yaml'
+      fields:
+        - {label: 主题名称, name: name, widget: hidden, default: "current_theme"}
+        - {label: 字体, name: font, widget: select, require: true, options: ["minimal", "mr_robot", "classic", "cyberpunk", "native", "rose"]}
+        - <<: *config-theme-color-fields
+          label: 浅色配色
+          name: light
+          widget: object
+        - <<: *config-theme-color-fields
+          label: 深色配色
+          name: dark
+          widget: object
+        - {label: 菜单 | 悬停, name: menu_hover, widget: boolean, hint: '为菜单中的按钮添加悬停效果'}
+        - {label: 菜单 | 描边, name: menu_border, widget: boolean}
+        - {label: 菜单 | 阴影, name: menu_shadow, widget: boolean}
+        - {label: 菜单 | 背景模糊, name: menu_blur, widget: boolean, hint: '若启用此效果前，则菜单背景颜色不能为不透明'}
+
+collections:
+  ###################################################################
+  ##                          home hero                            ##
+  ###################################################################
+  - <<: *spec-config
+    label: 主页 | 封面
+    summary: "{{fields.title}}"
+    name: home-hero
+    path: "home/{{slug}}"
+    filter: {field: belong, value: home-hero}
+    description: ""
+    fields:
+      - {name: belong, widget: hidden, default: home-hero}
+      - {name: slug, widget: hidden, default: hero, i18n: duplicate}
+      - {name: weight, widget: hidden, default: 10, i18n: duplicate}
+      - {name: widget, widget: hidden, default: hero, i18n: duplicate}
+      - {label: 封面标题, name: title, widget: string, i18n: true, required: true, default: "Title"}
+      - {label: 封面简介, name: body, widget: markdown, i18n: true}
+      - label: 封面图片
+        name: hero_media
+        widget: image
+        i18n: duplicate
+        media_folder: '/assets/media'
+        public_folder: '/media'
+        media_library:
+          config:
+            multiple: false
+      - label: CTA按钮
+        name: cta
+        widget: object
+        i18n: true
+        fields:
+          - {label: 图标包, name: icon_pack, widget: select, i18n: duplicate, default: fas, options: [fas, fab, far, fal], require: true}
+          - {label: 图标, name: icon, widget: string, i18n: duplicate}
+          - {label: 文本, name: label, widget: string, i18n: true, default: "Button", require: true}
+          - {label: 链接, name: url, widget: string, i18n: duplicate, default: "/", require: true}
+      - label: CTA链接
+        name: cta_alt
+        widget: object
+        i18n: true
+        fields:
+          - {label: 文本, name: label, widget: string, i18n: true}
+          - {label: 链接, name: url, widget: string, i18n: duplicate}
+      - label: CTA文本
+        name: cta_note
+        widget: object
+        i18n: true
+        fields:
+          - {label: 内容, name: label, widget: string, i18n: true}
+      - label: 设计
+        name: design
+        widget: object
+        i18n: true
+        fields:
+          - {label: 图片居左, name: flip, widget: boolean, i18n: duplicate, default: false, hint: "若有封面图片，将其显示在标题等内容的左侧" }
+          - label: 背景图片
+            name: background
+            widget: object
+            i18n: true
+            fields:
+              - {label: 不透明度, name: opacity, widget: number, i18n: duplicate, value_type: float, step: 0.01, min: 0, max: 1, default: 1, require: true}
+              - {label: 明度偏移, name: brightness, widget: number, i18n: duplicate, value_type: float, step: 0.01, min: 0.35, max: 1.65, default: 1, require: true, hint: "为了让内容能清晰显示，背景图片会随着主题的深浅而调整明度，若出现过曝或过暗，可以调整此数值"}
+              - label: 背景图片
+                name: image
+                widget: image
+                i18n: duplicate
+                media_folder: '/assets/media'
+                public_folder: '/media'
+                media_library:
+                  config:
+                    multiple: false
+
+  ###################################################################
+  ##                         folder pages                          ##
+  ##---------------------------------------------------------------##
+  ##  blog, product, service, press                                ##
+  ###################################################################
+  - <<: *post-config
+    label: 页面 | 博客
+    label_singular: 博文
+    name: blog
+    path: "blog/{{slug}}"
+    filter: {field: belong, value: blog}
+    fields:
+      - {name: belong, widget: hidden, default: blog}
+      - <<: *base-slug
+
+      - <<: *post-title
+      - <<: *post-subtitle
+      - <<: *post-body
+      - <<: *post-date
+      - <<: *post-summary
+      - <<: *post-draft
+      - <<: *post-authors
+      - <<: *post-tags
+      - <<: *post-categories
+      - <<: *post-image
+
+  - <<: *post-config
+    label: 页面 | 产品
+    label_singular: 产品
+    name: product
+    path: "product/{{slug}}"
+    filter: {field: belong, value: product}
+    fields:
+      - {name: belong, widget: hidden, default: product}
+      - <<: *base-slug
+
+      - <<: *post-title
+      - <<: *post-subtitle
+      - <<: *post-body
+      - <<: *post-date
+      - <<: *post-summary
+      - <<: *post-draft
+      - <<: *post-authors
+      - <<: *post-tags
+      - <<: *post-categories
+      - <<: *post-image
+
+  - <<: *post-config
+    label: 页面 | 服务
+    label_singular: 服务
+    name: service
+    path: "service/{{slug}}"
+    filter: {field: belong, value: service}
+    fields:
+      - {name: belong, widget: hidden, default: service}
+      - <<: *base-slug
+
+      - <<: *post-title
+      - <<: *post-subtitle
+      - <<: *post-body
+      - <<: *post-date
+      - <<: *post-summary
+      - <<: *post-draft
+      - <<: *post-authors
+      - <<: *post-tags
+      - <<: *post-categories
+      - <<: *post-image
+
+  - <<: *post-config
+    label: 页面 | 资讯
+    label_singular: 资讯
+    name: press
+    path: "press/{{slug}}"
+    filter: {field: belong, value: press}
+    fields:
+      - {name: belong, widget: hidden, default: press}
+      - <<: *base-slug
+
+      - <<: *post-title
+      - <<: *post-subtitle
+      - <<: *post-body
+      - <<: *post-date
+      - <<: *post-summary
+      - <<: *post-draft
+      - <<: *post-authors
+      - <<: *post-tags
+      - <<: *post-categories
+      - <<: *post-image
+
+  ###################################################################
+  ##                         about intro                           ##
+  ###################################################################
+  - <<: *spec-config
+    label: 关于 | 介绍
+    summary: "{{fields.title}}"
+    name: about-intro
+    path: "about/{{slug}}"
+    filter: {field: belong, value: about-intro}
+    description: 在关于页面中，标题名为"介绍"的内容块
+    fields:
+      - {name: belong, widget: hidden, default: about-intro}
+      - {name: slug, widget: hidden, default: intro, i18n: duplicate}
+      - {name: weight, widget: hidden, default: 10, i18n: duplicate}
+      - {name: widget, widget: hidden, default: blank, i18n: duplicate}
+      - {label: 标题, name: title, widget: string, i18n: true, required: true, default: "Intro"}
+      - {label: 副标题, name: subtitle, widget: string, i18n: true, default: '', required: false}
+      - {label: 内容, name: body, widget: markdown, i18n: true, required: true}
+      - label: 设计
+        name: design
+        widget: object
+        i18n: true
+        fields:
+          - {label: 排列方式, name: columns, widget: select, i18n: duplicate, options: [{label: "纵向", value: "1"}, {label: "横向", value: "2"}], hint: "标题和内容的排列方式"}
+
+  ###################################################################
+  ##                         about blanks                          ##
+  ###################################################################
+  - <<: *post-config
+    label: 关于 | 自定义内容
+    label_singular: 内容块
+    name: about
+    path: "about/{{slug}}"
+    filter: {field: belong, value: about}
+    description: 在"介绍"后追加自定义的内容块
+    fields:
+      - {name: belong, widget: hidden, default: about}
+      - <<: *base-slug
+      - {label: 权重, name: weight, widget: number, default: 15, step: 5, min: 15, max: 95, i18n: duplicate, hint: "数值越小排序越靠前"}
+      - {name: widget, widget: hidden, default: blank, i18n: duplicate}
+      - {label: 标题, name: title, widget: string, i18n: true, required: true}
+      - {label: 副标题, name: subtitle, widget: string, i18n: true, default: '', required: false}
+      - {label: 内容, name: body, widget: markdown, i18n: true, required: true}
+      - label: 设计
+        name: design
+        widget: object
+        i18n: true
+        fields:
+          - {label: 排列方式, name: columns, widget: select, i18n: duplicate, options: [{label: "纵向", value: "1"}, {label: "横向", value: "2"}], hint: "标题和内容的排列方式"}
+
+  ###################################################################
+  ##                            terms                              ##
+  ###################################################################
+  - <<: *spec-config
+    label: 服务条款
+    summary: 服务条款
+    name: terms
+    path: "terms"
+    description: "显示在网站下方的服务条款"
+    filter: {field: belong, value: terms}
+    fields:
+      - {name: belong, widget: hidden, default: terms}
+      - {name: slug, widget: hidden, default: terms}
+      - <<: *post-title
+      - <<: *post-subtitle
+      - <<: *post-body
+      - <<: *post-date
+      - <<: *post-image
+
+  ###################################################################
+  ##                         config pages                          ##
+  ##---------------------------------------------------------------##
+  ##  theme, menus, languages, params                              ##
+  ###################################################################
+  - label: 配置文件
+    name: configs
+    description: "可配置网站配色、字体、菜单样式、菜单内容、网站名称、日期格式、时间格式等内容"
+    files:
+      - <<: *config-theme
+      - <<: *config-menus
+      - <<: *config-languages
+      - <<: *config-params-en
+      - <<: *config-params-zh
+      - <<: *config-params-zh-hant
+
